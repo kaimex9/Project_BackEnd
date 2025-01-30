@@ -30,21 +30,21 @@ class NurseController extends AbstractController
     }
 
 
-    #[Route('/login', name: 'app_nurse_login', methods:["POST"])]
+    #[Route('/login', name: 'app_nurse_login', methods: ["POST"])]
     public function nurseLogin(Request $request, NursesRepository $nursesRepository): JsonResponse
     { {
             $name = $request->request->get('name');
-            $pass = $request->request->get( 'pass');
-            if(isset($name) && isset($pass)){
-            $correcto = false;
-          
-            $nurse = $nursesRepository->nurseLogin($name, $pass);
-            
-            if($nurse){
-                $correcto = true;
-            }
-            return new JsonResponse(["login" => $correcto], Response::HTTP_OK);
-            }else{
+            $pass = $request->request->get('pass');
+            if (isset($name) && isset($pass)) {
+                $correcto = false;
+
+                $nurse = $nursesRepository->nurseLogin($name, $pass);
+
+                if ($nurse) {
+                    $correcto = true;
+                }
+                return new JsonResponse(["login" => $correcto], Response::HTTP_OK);
+            } else {
                 return new JsonResponse(["login" => false], Response::HTTP_UNAUTHORIZED);
             }
         }
@@ -53,16 +53,16 @@ class NurseController extends AbstractController
     public function findByName(string $name, NursesRepository $NursesRepository): JsonResponse
     {
         $nurse = $NursesRepository->findOneByName($name);
-    
+
         if (!$nurse) {
             return new JsonResponse(['error' => 'Nurse not found'], JsonResponse::HTTP_NOT_FOUND);
         }
-    
+
         $nurseData = [
             'user' => $nurse->getUser(),
             'password' => $nurse->getPassword(),
         ];
-    
+
         return new JsonResponse($nurseData, JsonResponse::HTTP_OK);
     }
 
@@ -97,22 +97,31 @@ class NurseController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_nurses_edit', methods: ['PUT'])]
-    public function edit($id, Request $request, Nurses $nurseId = null, EntityManagerInterface $entityManager): JsonResponse
+    public function edit(int $id, Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
-        $nurseId = $entityManager->getRepository(Nurses::class)->find($id);
-        if(!$nurseId){
-            return new JsonResponse(["Nurse" => "Not Found"]);
+        $nurse = $entityManager->getRepository(Nurses::class)->find($id);
+
+        if (!$nurse) {
+            return new JsonResponse(["error" => "Nurse not found"], JsonResponse::HTTP_NOT_FOUND);
         }
+
         $data = json_decode($request->getContent(), true);
 
-        $nurseId->setUser($data["user"]);
-        $nurseId->setPassword($data["pass"]);
+        if (!isset($data["user"]) || !isset($data["pass"])) {
+            return new JsonResponse(["error" => "Invalid data"], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
-        $entityManager->persist($nurseId);
+
+        $nurse->setUser($data["user"]);
+        $nurse->setPassword($data["pass"]);
+
+
+        $entityManager->persist($nurse);
         $entityManager->flush();
 
-        return new JsonResponse(["nurse" => "modified"], Response::HTTP_OK);
+        return new JsonResponse(["message" => "Nurse modified successfully"], JsonResponse::HTTP_OK);
     }
+
 
     #[Route('/{id}', name: 'app_nurses_delete', methods: ['DELETE'])]
     public function delete(EntityManagerInterface $entityManager, int $id): JsonResponse
@@ -128,5 +137,4 @@ class NurseController extends AbstractController
 
         return new JsonResponse(['message' => 'Nurse deleted successfully'], Response::HTTP_OK);
     }
-    
 }
